@@ -1,6 +1,4 @@
-/*
-find_moves {
-	for each box b {
+/* find_moves { for each box b {
 		moves = possible_moves(b)
 		for each move m in moves {
 			move(b, m)
@@ -24,12 +22,14 @@ find_moves {
 #include <stdio.h>
 #include <err.h>
 
+/* !! QUEUE SIZE MUST BE THE GREATER NUMBER BETWEEN ROWS AND COLS !! */
+#define QUEUESIZE 7
 #define ROWS 7
 #define COLS 7
 
 #define EMPTY 0
 
-/* DO NOT CHANGE THESE. BY DOING SO, YOU'RE GONNA SCREW movetostring() UP! */
+/* !! DO NOT CHANGE THESE. BY DOING SO, YOU'RE GONNA SCREW movetostring() UP! !! */
 #define RIGHT 0
 #define LEFT  1
 #define DOWN  2
@@ -88,62 +88,83 @@ move(int matrix[ROWS][COLS], int row, int col, int move)
 	}
 } 
 
+struct queue {
+	int list[QUEUESIZE];
+	int index;
+};
+
+int
+queuesize(struct queue *q)
+{
+	return q->index;
+}
+
+void
+queueinit(struct queue *q)
+{
+	q->index = 0;
+	memset(q->list, 0, QUEUESIZE * sizeof(int));
+}
+
+void
+enqueue(struct queue *q, int elem)
+{
+	q->list[q->index] = elem;
+	q->index++;
+}
+
 void right(int matrix[ROWS][COLS], int mask[ROWS][COLS], int row, int col);
 void down (int matrix[ROWS][COLS], int mask[ROWS][COLS], int row, int col);
 
 void
 right(int matrix[ROWS][COLS], int mask[ROWS][COLS], int row, int col) 
 {
-	int queue[COLS];
-	int qindx, ci, i;
+	struct queue q;
+	int ci, i;
 
-	memset(queue, 0, COLS * sizeof(int));
-	qindx = 0;
-	queue[qindx++] = col;
+	queueinit(&q);
+	enqueue(&q, col);
 	ci = col+1;
 
 	while( ci < COLS && matrix[row][ci] == matrix[row][col] ) {
-		queue[qindx] = ci;
+		enqueue(&q, ci);
 		ci++;
-		qindx++;
 	}
 
-	if (qindx > 2) {
-		for (i = 1; i < qindx; i++) {
-			ci = queue[i];
+	if (queuesize(&q) >= 3) {
+		for (i = 1; i < queuesize(&q); i++) {
+			ci = q.list[i];
 			mask[row][ci] = 1;
-			down(matrix, mask, row, ci);
 		}
 		mask[row][col] = 1;
 	}
 }
+
 
 void
 down (int matrix[ROWS][COLS], int mask[ROWS][COLS], int row, int col)
 {
-	int queue[ROWS];
-	int qindx, ri, i;
+	struct queue q;
+	int cr, i;
 
-	memset(queue, 0, ROWS * sizeof(int));
-	qindx = 0;
-	queue[qindx++] = row;
-	ri = row+1;
+	queueinit(&q);
+	enqueue(&q, row);
+	cr = row+1;
 
-	while( ri < ROWS && matrix[ri][col] == matrix[row][col] ) {
-		queue[qindx] = ri;
-		ri++;
-		qindx++;
+	while( cr < ROWS && matrix[cr][col] == matrix[row][col] ) {
+		enqueue(&q, cr);
+		cr++;
 	}
 
-	if (qindx > 2) {
-		for (i = 1; i < qindx; i++) {
-			ri = queue[i];
-			mask[ri][col] = 1;
-			right(matrix, mask, ri, col);
+	if (queuesize(&q) >= 3) {
+		for (i = 1; i < queuesize(&q); i++) {
+			cr = q.list[i];
+			mask[cr][col] = 1;
 		}
 		mask[row][col] = 1;
 	}
 }
+
 
 int
 erase(int matrix[ROWS][COLS])
@@ -216,6 +237,7 @@ movetostring(int move)
 		errx(1, "movetostring: Invalid move (%d)", move);
 	return moves[move];
 }
+
 int 
 findmoves(int matrix[ROWS][COLS], int steps, int maxsteps) 
 {
@@ -225,24 +247,25 @@ findmoves(int matrix[ROWS][COLS], int steps, int maxsteps)
 
 	for (i = 0; i < ROWS; i++) {
 		for (j = 0; j < COLS; j++) {
-			if(isbox(matrix [i][j])) {
-				int lastmove;
-				int above = i > 0 ? matrix[i-1][j] : EMPTY;
-				lastmove = possiblemoves(above, i, j, moves);
-				for (k = 0; k < lastmove; k++) {
-					memcpy(changedmatrix, matrix, ROWS * COLS * sizeof(int));
-					move(changedmatrix, i, j, moves[k]);
-					fix(changedmatrix);
-					if (issolution(changedmatrix)) {
-						printf("Step %d - Box (%d,%d) moved %s\n", 
-						       steps, i, j, movetostring(moves[k]));
-						return 1;
-					} else if(steps + 1 < maxsteps &&
-						      findmoves(changedmatrix, steps+1, maxsteps)) {
-							printf("Step %d - Box (%d,%d) moved %s\n", 
-								   steps, i, j, movetostring(moves[k]));
-							return 1;
-						}
+			if(!isbox(matrix [i][j])) 
+				continue;
+
+			int lastmove;
+			int above = i > 0 ? matrix[i-1][j] : EMPTY;
+			lastmove = possiblemoves(above, i, j, moves);
+			for (k = 0; k < lastmove; k++) {
+				memcpy(changedmatrix, matrix, ROWS * COLS * sizeof(int));
+				move(changedmatrix, i, j, moves[k]);
+				fix(changedmatrix);
+				if (issolution(changedmatrix)) {
+					printf("Step %d - Box (%d,%d) moved %s\n", 
+						   steps, i, j, movetostring(moves[k]));
+					return 1;
+				} else if(    steps + 1 < maxsteps
+						   && findmoves(changedmatrix, steps+1, maxsteps)) {
+					printf("Step %d - Box (%d,%d) moved %s\n", 
+						   steps, i, j, movetostring(moves[k]));
+					return 1;
 				}
 			}
 		}
@@ -255,15 +278,20 @@ printmatrix(int matrix[ROWS][COLS])
 {
 	int i, j;
 	for (i = 0; i < ROWS; i++) 
-		for(j = 0; j < COLS; j++) 
-			printf("%d%c", matrix[i][j], j == COLS-1 ? '\n' : ' ');
+		for(j = 0; j < COLS; j++)  {
+			printf("%d", matrix[i][j]);
+			if (j == COLS - 1)
+				printf("\n");
+		}
 }
+
 int 
 main(void)
 {
 	int matrix[ROWS][COLS];
 	int i, j, max;
 	char c;
+
 	memset(matrix, 0, ROWS * COLS * sizeof(int));
 	scanf("%d%c", &max, &c);
 	for (i = 0; i < ROWS; i++) {
