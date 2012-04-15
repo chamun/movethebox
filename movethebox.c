@@ -1,31 +1,11 @@
-/* find_moves { for each box b {
-		moves = possible_moves(b)
-		for each move m in moves {
-			move(b, m)
-			if is a solution
-				print move
-				return true
-			else {
-				steps++
-				if steps < max_steps
-					if(find_moves()) {
-						return true
-					}
-			}
-			unmove(b, m)
-		}
-	}
-	return false
-}
-*/
-#include <string.h>
-#include <stdio.h>
 #include <err.h>
+#include <stdio.h>
+#include <string.h>
 
 /* !! QUEUE SIZE MUST BE THE GREATER NUMBER BETWEEN ROWS AND COLS !! */
 #define QUEUESIZE 7
-#define ROWS 7
-#define COLS 7
+#define ROWS      7
+#define COLS      7
 
 #define EMPTY 0
 
@@ -40,6 +20,19 @@ isbox(int cell)
 {
 	return cell > 0;
 }
+
+void
+printmatrix(int matrix[ROWS][COLS])
+{
+	int i, j;
+	for (i = 0; i < ROWS; i++) 
+		for(j = 0; j < COLS; j++)  {
+			printf("%d", matrix[i][j]);
+			if (j == COLS - 1)
+				printf("\n");
+		}
+}
+
 
 /* Returns in moves, all moves a box (row,col) may perform */
 int
@@ -67,7 +60,7 @@ swap(int matrix[ROWS][COLS], int row1, int col1, int row2, int col2)
 	matrix[row1][col1] = aux;
 }
 
-/* Performs a move on a box */
+/* Moves on a box */
 void
 move(int matrix[ROWS][COLS], int row, int col, int move)
 {
@@ -113,8 +106,6 @@ enqueue(struct queue *q, int elem)
 	q->index++;
 }
 
-void right(int matrix[ROWS][COLS], int mask[ROWS][COLS], int row, int col);
-void down (int matrix[ROWS][COLS], int mask[ROWS][COLS], int row, int col);
 
 void
 right(int matrix[ROWS][COLS], int mask[ROWS][COLS], int row, int col) 
@@ -193,29 +184,41 @@ erase(int matrix[ROWS][COLS])
 }
 
 void
+fall (int matrix[ROWS][COLS], int bottom, int top, int to, int col)
+{
+	int cto, cbottom;
+	
+	cto = to;
+	cbottom = bottom;
+	while (cbottom > top) {
+		matrix[cto][col] = matrix[cbottom][col];
+		matrix[cbottom][col] = EMPTY;
+		cto--;
+		cbottom--;
+	}
+	
+}
+
+void
 fix(int matrix[ROWS][COLS])
 {
-	int i, j, k;
-	FIX:
+	int i, j;
 	/* First, we make the boxes fall */
-	for (i = 0; i < ROWS; i++)
+	for (i = 0; i < ROWS - 1; i++)
 		for(j = 0; j < COLS; j++) {
-			int changed = 0;
-			k = i;
-			while(    isbox(matrix[k][j])  
-			       && k < ROWS - 1 
-				   && !isbox(matrix[k+1][j])) {
-				   swap(matrix, k, j, k+1, j);
-				   k++;
-				   changed = 1;
-			}
-			if (changed)
-				goto FIX;
+			if(!(isbox(matrix[i][j]) && !isbox(matrix[i+1][j])))
+				continue;
+			int to, top;
+			for (to  = i+1; to  < ROWS && !isbox(matrix[to ][j]); to++);
+			for (top = i-1; top >= 0   &&  isbox(matrix[top][j]); top--);
+			/* "to" is the row position of the next box below the current box.
+			 * We decrement 1 so it will be the position above the next box */
+			fall(matrix, i, top, to-1, j);
 		}
 
 	/* Now we eliminate box that are joined together */
 	if (erase(matrix))
-		goto FIX;
+		fix(matrix);
 }
 
 int
@@ -271,18 +274,6 @@ findmoves(int matrix[ROWS][COLS], int steps, int maxsteps)
 		}
 	}
 	return 0;
-}
-
-void
-printmatrix(int matrix[ROWS][COLS])
-{
-	int i, j;
-	for (i = 0; i < ROWS; i++) 
-		for(j = 0; j < COLS; j++)  {
-			printf("%d", matrix[i][j]);
-			if (j == COLS - 1)
-				printf("\n");
-		}
 }
 
 int 
