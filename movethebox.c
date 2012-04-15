@@ -15,72 +15,6 @@
 #define DOWN  2
 #define UP    3
 
-int
-isbox(int cell)
-{
-	return cell > 0;
-}
-
-void
-printmatrix(int matrix[ROWS][COLS])
-{
-	int i, j;
-	for (i = 0; i < ROWS; i++) 
-		for(j = 0; j < COLS; j++)  {
-			printf("%d", matrix[i][j]);
-			if (j == COLS - 1)
-				printf("\n");
-		}
-}
-
-
-/* Returns in moves, all moves a box (row,col) may perform */
-int
-possiblemoves(int boxabove, int row, int col, int *moves)
-{
-	int index;
-	index = 0;
-	if (col < COLS)
-		moves[index++] = RIGHT;
-	if (col > 0)
-		moves[index++] = LEFT;
-	if (row > 0 && isbox(boxabove))
-		moves[index++] = UP;
-	if (row < ROWS - 1)
-		moves[index++] = DOWN;
-	return index;
-}
-
-/* Swaps box (row1, col1) with box(row2, col2) */
-void
-swap(int matrix[ROWS][COLS], int row1, int col1, int row2, int col2)
-{
-	int aux = matrix[row2][col2];
-	matrix[row2][col2] = matrix[row1][col1];
-	matrix[row1][col1] = aux;
-}
-
-/* Moves on a box */
-void
-move(int matrix[ROWS][COLS], int row, int col, int move)
-{
-	int aux;
-	switch(move) {
-		case UP:
-			swap(matrix, row, col, row-1, col);
-			break;
-		case DOWN:
-			swap(matrix, row, col, row+1, col);
-			break;
-		case LEFT:
-			swap(matrix, row, col, row, col-1);
-			break;
-		case RIGHT:
-			swap(matrix, row, col, row, col+1);
-			break;
-	}
-} 
-
 struct queue {
 	int list[QUEUESIZE];
 	int index;
@@ -106,6 +40,79 @@ enqueue(struct queue *q, int elem)
 	q->index++;
 }
 
+int
+isbox(int cell)
+{
+	return cell > 0;
+}
+
+void
+printmatrix(int matrix[ROWS][COLS])
+{
+	int i, j;
+	for (i = 0; i < ROWS; i++) 
+		for(j = 0; j < COLS; j++)  {
+			printf("%d", matrix[i][j]);
+			if (j == COLS - 1)
+				printf("\n");
+		}
+}
+
+
+/* Returns in "moves", all moves a box (row,col) may perform */
+
+int
+possiblemoves(int boxabove, int row, int col, int *moves)
+{
+	int index;
+	index = 0;
+	if (col < COLS)
+		moves[index++] = RIGHT;
+	if (col > 0)
+		moves[index++] = LEFT;
+	if (row > 0 && isbox(boxabove))
+		moves[index++] = UP;
+	if (row < ROWS - 1)
+		moves[index++] = DOWN;
+	return index;
+}
+
+/* Swaps box (row1, col1) with box(row2, col2) */
+
+void
+swap(int matrix[ROWS][COLS], int row1, int col1, int row2, int col2)
+{
+	int aux = matrix[row2][col2];
+	matrix[row2][col2] = matrix[row1][col1];
+	matrix[row1][col1] = aux;
+}
+
+/* Moves a box */
+void
+move(int matrix[ROWS][COLS], int row, int col, int move)
+{
+	int aux;
+	switch(move) {
+		case UP:
+			swap(matrix, row, col, row-1, col);
+			break;
+		case DOWN:
+			swap(matrix, row, col, row+1, col);
+			break;
+		case LEFT:
+			swap(matrix, row, col, row, col-1);
+			break;
+		case RIGHT:
+			swap(matrix, row, col, row, col+1);
+			break;
+	}
+} 
+
+/* 
+ * Checks whether there are two or more consecutives boxes on the right of the
+ * box (row,col). If there are, mark them in "mask" so
+ * they can be erased later. 
+ */
 
 void
 right(int matrix[ROWS][COLS], int mask[ROWS][COLS], int row, int col) 
@@ -131,6 +138,10 @@ right(int matrix[ROWS][COLS], int mask[ROWS][COLS], int row, int col)
 	}
 }
 
+/*
+ * Same thing as right, but checks for consecutives boxes below the box
+ * (row,col)
+ */
 
 void
 down (int matrix[ROWS][COLS], int mask[ROWS][COLS], int row, int col)
@@ -156,6 +167,10 @@ down (int matrix[ROWS][COLS], int mask[ROWS][COLS], int row, int col)
 	}
 }
 
+/* 
+ * Looks for boxes with the same shape that are grouped together and erase them
+ * from the matrix 
+ */
 
 int
 erase(int matrix[ROWS][COLS])
@@ -183,6 +198,8 @@ erase(int matrix[ROWS][COLS])
 	return ret;
 }
 
+/* Moves boxes down if there are no boxes under them */
+
 void
 fall (int matrix[ROWS][COLS], int bottom, int top, int to, int col)
 {
@@ -199,6 +216,10 @@ fall (int matrix[ROWS][COLS], int bottom, int top, int to, int col)
 	
 }
 
+/*
+ * Eliminates boxes that look tha same, and places boxes in the right place if
+ * there are no boxes under them
+ */
 void
 fix(int matrix[ROWS][COLS])
 {
@@ -216,11 +237,12 @@ fix(int matrix[ROWS][COLS])
 			fall(matrix, i, top, to-1, j);
 		}
 
-	/* Now we eliminate box that are joined together */
+	/* Now we eliminate boxes that are joined together */
 	if (erase(matrix))
 		fix(matrix);
 }
 
+/* Checks if the current matrix have no boxes */
 int
 issolution(int matrix[ROWS][COLS])
 {
@@ -232,6 +254,7 @@ issolution(int matrix[ROWS][COLS])
 	return 1;
 }
 
+/* Returns the corresponding string of the integer "move" */
 const char*
 movetostring(int move)
 {
@@ -241,6 +264,7 @@ movetostring(int move)
 	return moves[move];
 }
 
+/* Finds the moves we need to perform to solve the game */
 int 
 findmoves(int matrix[ROWS][COLS], int steps, int maxsteps) 
 {
@@ -292,8 +316,6 @@ main(void)
 		}
 		scanf("%c", &c);	
 	}
-	//printf("Matrix:\n");
-	//printmatrix(matrix);
 
 	findmoves(matrix, 0, max);
 }
