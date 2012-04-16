@@ -3,8 +3,8 @@
 #include <string.h>
 
 /* !! QUEUE SIZE MUST BE THE GREATER NUMBER BETWEEN ROWS AND COLS !! */
-#define QUEUESIZE 7
-#define ROWS      7
+#define QUEUESIZE 8
+#define ROWS      8
 #define COLS      7
 
 #define EMPTY 0
