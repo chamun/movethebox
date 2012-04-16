@@ -1,0 +1,9 @@
+This program solves a level of the app "Move the Box"
+Examples of input files are shown in levels/
+
+Usage:
+./movethebox < inputfile
+
+Move the Box:
+Android - https://play.google.com/store/apps/details?id=ua.co.cts.sideup&hl=en
+iOS     - http://itunes.apple.com/us/app/move-the-box-lite/id491186342?mt=8
