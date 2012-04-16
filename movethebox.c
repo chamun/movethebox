@@ -47,19 +47,6 @@ isbox(int cell)
 	return cell > 0;
 }
 
-void
-printmatrix(int matrix[ROWS][COLS])
-{
-	int i, j;
-	for (i = 0; i < ROWS; i++) 
-		for(j = 0; j < COLS; j++)  {
-			printf("%d", matrix[i][j]);
-			if (j == COLS - 1)
-				printf("\n");
-		}
-}
-
-
 /* Returns in "moves", all moves a box (row,col) may perform */
 
 int
@@ -265,9 +252,18 @@ movetostring(int move)
 	return moves[move];
 }
 
+struct step { int row, col, move; }; 
+void
+initstep(struct step *s, int row, int col, int move)
+{
+	s->row = row;
+	s->col = col;
+	s->move = move;
+}
+
 /* Finds the moves we need to perform to solve the game */
 int 
-findmoves(int matrix[ROWS][COLS], int steps, int maxsteps, char **solution) 
+findmoves(int matrix[ROWS][COLS], int steps, int maxsteps, struct step **solution) 
 {
 	int i, j, k;
 	int moves[4];
@@ -286,13 +282,11 @@ findmoves(int matrix[ROWS][COLS], int steps, int maxsteps, char **solution)
 				move(changedmatrix, i, j, moves[k]);
 				fix(changedmatrix);
 				if (issolution(changedmatrix)) {
-					sprintf(solution[steps], "Move box (%d,%d) %s",
-						    i, j, movetostring(moves[k]));
+					initstep(solution[steps], i, j, moves[k]);
 					return 1;
 				} else if(    steps + 1 < maxsteps
 						   && findmoves(changedmatrix, steps+1, maxsteps, solution)) {
-					sprintf(solution[steps], "Move box (%d,%d) %s",
-						    i, j, movetostring(moves[k]));
+					initstep(solution[steps], i, j, moves[k]);
 					return 1;
 				}
 			}
@@ -301,12 +295,41 @@ findmoves(int matrix[ROWS][COLS], int steps, int maxsteps, char **solution)
 	return 0;
 }
 
+/* 
+ * Print a matrix. row and col are the position of a box that should be in
+ * evidence
+ */
+void
+printmatrix(int matrix[ROWS][COLS], int row, int col)
+{
+	int i, j;
+	char symbols[11] = { ' ', '@', '#', '$', '%', '&', '*', 'D', 'O', 'U', '?'};
+	char symbol;
+	for (i = 0; i < ROWS; i++) {
+		printf("%d ", i+1);
+		for(j = 0; j < COLS; j++)  {
+			if (matrix[i][j] > 10)
+				errx(1, "printmatrix: unexpected code for a box (!= [0-9])");
+			symbol = (i == row && j == col) ? symbols[10] : symbols[matrix[i][j]];
+			printf("%c", symbol);
+			if (j == COLS - 1)
+				printf("\n");
+		}
+	}
+
+	printf("  ");
+	for(j = 0; j < COLS; j++) 
+		printf("%d", j+1);
+	printf("\n");
+}
+
 int 
 main(void)
 {
 	int matrix[ROWS][COLS];
 	int i, j, max;
-	char c, **solution;
+	char c;
+	struct step **solution;
 
 
 	memset(matrix, 0, ROWS * COLS * sizeof(int));
@@ -319,13 +342,20 @@ main(void)
 		scanf("%c", &c);	
 	}
 
-	solution = malloc(max);
+	solution = malloc(sizeof(struct step *) * max);
 	for (i = 0; i < max; i++)
-		solution[i] = malloc(30);
+		solution[i] = malloc(sizeof (struct step));
 
 	findmoves(matrix, 0, max, solution);
-	for (i = 0; i < max; i++)
-		printf("%s\n", solution[i]);
+	for (i = 0; i < max; i++) {
+		printf("STEP %d\n", i+1);
+		printmatrix(matrix, solution[i]->row, solution[i]->col);
+		printf("Move box (%d,%d) %s\n",
+				solution[i]->row+1, solution[i]->col+1,
+				movetostring(solution[i]->move));
+		move(matrix, solution[i]->row, solution[i]->col, solution[i]->move);
+		fix(matrix);
+	}
 
 	for (i = 0; i < max; i++)
 		free(solution[i]);
