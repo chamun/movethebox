@@ -1,5 +1,6 @@
 #include <err.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* !! QUEUE SIZE MUST BE THE GREATER NUMBER BETWEEN ROWS AND COLS !! */
@@ -266,7 +267,7 @@ movetostring(int move)
 
 /* Finds the moves we need to perform to solve the game */
 int 
-findmoves(int matrix[ROWS][COLS], int steps, int maxsteps) 
+findmoves(int matrix[ROWS][COLS], int steps, int maxsteps, char **solution) 
 {
 	int i, j, k;
 	int moves[4];
@@ -285,13 +286,13 @@ findmoves(int matrix[ROWS][COLS], int steps, int maxsteps)
 				move(changedmatrix, i, j, moves[k]);
 				fix(changedmatrix);
 				if (issolution(changedmatrix)) {
-					printf("Step %d - Box (%d,%d) moved %s\n", 
-						   steps, i, j, movetostring(moves[k]));
+					sprintf(solution[steps], "Move box (%d,%d) %s",
+						    i, j, movetostring(moves[k]));
 					return 1;
 				} else if(    steps + 1 < maxsteps
-						   && findmoves(changedmatrix, steps+1, maxsteps)) {
-					printf("Step %d - Box (%d,%d) moved %s\n", 
-						   steps, i, j, movetostring(moves[k]));
+						   && findmoves(changedmatrix, steps+1, maxsteps, solution)) {
+					sprintf(solution[steps], "Move box (%d,%d) %s",
+						    i, j, movetostring(moves[k]));
 					return 1;
 				}
 			}
@@ -305,7 +306,8 @@ main(void)
 {
 	int matrix[ROWS][COLS];
 	int i, j, max;
-	char c;
+	char c, **solution;
+
 
 	memset(matrix, 0, ROWS * COLS * sizeof(int));
 	scanf("%d%c", &max, &c);
@@ -317,5 +319,15 @@ main(void)
 		scanf("%c", &c);	
 	}
 
-	findmoves(matrix, 0, max);
+	solution = malloc(max);
+	for (i = 0; i < max; i++)
+		solution[i] = malloc(30);
+
+	findmoves(matrix, 0, max, solution);
+	for (i = 0; i < max; i++)
+		printf("%s\n", solution[i]);
+
+	for (i = 0; i < max; i++)
+		free(solution[i]);
+	free (solution);
 }
